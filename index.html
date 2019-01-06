@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>花火</title>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.11/p5.js"></script>
+</head>
+
+<body style="text-align: center;">
+    <script>
+        /*
+         * p5.js を使用。
+         * サイズに関して、連想配列を用いる場合は横を width(or WIDTH)、縦を height(or HEIGHT)とする。
+         * 座標、速度などの物理的な変数に関して、連想配列を用いる場合は横を x(or X)、縦を y(or Y)とする。
+         * 1m -> 1px
+         *
+         */
+
+        //定数（グローバル）
+        const CANVAS_SIZE = {
+            WIDTH: 500,
+            HEIGHT: 500
+        };
+
+        //グローバル変数
+
+
+        //クラス(draw()関数の中で使用)
+
+        //物理法則と情報を持つ
+        class Physics {
+            constructor(initialPosition, initialVelocity, mass, resistanceCofficient) {
+                this._gravityAcceleration = -9.8;
+                this._beforeTime = Date.now();
+                this._currentPosition = initialPosition;
+                this._beforelVelocity = initialVelocity;
+                this._resistanceCofficient = resistanceCofficient; //空気抵抗
+                this._mass = mass;
+            }
+
+
+            //単位：s
+            //時間の差分を取得
+            getTimeDifference() {
+                let timeDiff = Date.now() - this._beforeTime;
+                this._beforeTime = Date.now();
+                return (timeDiff / 1000); //ミリ秒を秒に変換
+            }
+
+            //単位：Kg
+            set mass(mass) {
+                this._mass = mass;
+            }
+
+            //単位：Kg
+            get mass() {
+                return this._mass;
+            }
+
+            //単位：s
+            get currentPosition() {
+                return this._currentPosition;
+            }
+
+            //単位：m, Kg, s
+            //物理状態(仮)を更新
+            updateState(mass = this._mass, resistanceCofficient = this._resistanceCofficient) {
+                let timeDiff = this.getTimeDifference(); //前回の位置更新からの経過時間(差分) 単位：s
+                let constant0 = this._mass / this._resistanceCofficient;
+                let constant1 = Math.exp(-timeDiff / constant0);
+                let constant2 = constant0 * constant1;
+
+                //位置を更新
+                //前回の位置からの差分を足す（質量変化を考慮するため）
+                this._currentPosition.x += -this._beforelVelocity.x * constant2;
+                this._currentPosition.y += -this._beforelVelocity.y * constant2 + constant0 * this._gravityAcceleration * timeDiff;
+
+                //速度を更新
+                this._beforelVelocity.x = this._beforelVelocity.x * constant1;
+                this._beforelVelocity.y = this._beforelVelocity.y * constant1 + this._gravityAcceleration * constant0;
+
+                //質量・空気抵抗係数を更新
+                this._mass = mass;
+                this._resistanceCofficient = resistanceCofficient;
+
+                //デバッグ用
+                //console.log("difference : " + timeDiff);
+            }
+        }
+
+        //花火の星
+        class Firestar {
+            constructor(color, survivalTime, physics) {
+                this._color = color;
+                this._survivalTime = survivalTime;
+                this._diameter = 3;
+                this._physics = physics;
+                this._mass = physics.mass;
+            }
+
+            set diameter(val) {
+                this._diameter = val;
+            }
+            
+
+            //星の色変化に対応するため
+            drawFirestar(color = this._color) {
+                this._physics.updateState(); //物理状態(仮)を更新
+                let position = this._physics.currentPosition;
+
+                //星を描画
+                this._color = color;
+                fill(color);
+                ellipse(position.x, position.y, this._diameter);
+            }
+        }
+
+        //花火本体
+        class Firework {
+            constructor(color, explosionTime, physics, firestarsNum = 1000) {
+                this._color = color;
+                this._explosionTime = explosionTime;
+                this._initialTime = Date.now();
+                this._firestarsNum = firestarsNum;
+                this._fireworkPhysics = physics;
+                this._firestarInitialVelocity = 90;
+                this._firestarMass = 0.01;
+                this._isAlive = true;
+
+            }
+            
+            get isAlive() {
+                return this._isAlive;
+            }
+
+            generateFirestars() {
+                let radDiff = Math.PI * 2 / this._firestarsNum;
+                this._firestars = Array(this._firestarsNum);
+                for (let i = 0; i < this._firestarsNum; i++) {
+                    let randomVelocity = Math.random() * this._firestarInitialVelocity;
+                    let initialVelocity = {
+                        x: randomVelocity * Math.cos(i * radDiff),
+                        y: randomVelocity * Math.sin(i * radDiff)
+                    }
+                    let firestarPhysics = new Physics(this._fireworkPhysics.currentPosition, initialVelocity, this._firestarMass, );
+                    this._firestars[i] = new Firestar(this._color, );
+                }
+            }
+
+            drawFirework() {
+
+            }
+        }
+
+
+        //class の動作確認用
+        class Test {
+            constructor(CANVAS_SIZE) {
+                console.log("generated Test");
+                this.CANVAS_SIZE = CANVAS_SIZE;
+                this._testValue1 = 0;
+                this._testValue2 = {
+                    x: 0,
+                    y: 0
+                }
+            }
+
+            set test22(val) {
+                this._testValue2 = val;
+            }
+            get test2() {
+                return this._testValue2;
+            }
+
+            set test(testValue) {
+                this._testValue1 = testValue;
+            }
+            get test() {
+                return this._testValue1;
+            }
+
+            testFunc() {
+                fill(255);
+                ellipse(mouseX, mouseY, 5);
+                fill(255);
+            }
+
+            //デフォルト値の動作確認
+            testDefault(test = this._testValue1) {
+                this._testValue1 = test;
+                console.log(this._testValue1);
+            }
+        }
+
+        //以下描画用
+        function setup() {
+            createCanvas(CANVAS_SIZE.WIDTH, CANVAS_SIZE.HEIGHT);
+            console.log("hoge");
+        }
+
+
+        //以下デバッグ用
+        //以下言語仕様の確認用VVVVV
+        let test = new Test(CANVAS_SIZE);
+        let testValue1 = 10;
+        let test2 = Object.assign(test);
+        //以上言語仕様の確認用AAAAA
+
+        //星の生成テスト
+        let initialPosition = {
+            x: CANVAS_SIZE.WIDTH / 2,
+            y: CANVAS_SIZE.HEIGHT / 4
+        };
+        let initialVelocity = {
+            x: 50,
+            y: 50
+        }
+        let mass = 0.01;
+        let resistanceCofficient = 0.06;
+        let FIRESTAR_NUM = 500;
+        let FIRESTAR_INITIAL_VELOCITY = 90;
+        let firestat_generate_time = Date.now();
+        let firestars = new Array(FIRESTAR_NUM);
+        for (let i = 0; i < FIRESTAR_NUM; i++) {
+            initialPosition = {
+                x: CANVAS_SIZE.WIDTH / 2,
+                y: CANVAS_SIZE.HEIGHT / 4
+            };
+            initialVelocity = {
+                x: FIRESTAR_INITIAL_VELOCITY * Math.cos(i * 2 * Math.PI / FIRESTAR_NUM) * 0,
+                y: FIRESTAR_INITIAL_VELOCITY * Math.sin(i * 2 * Math.PI / FIRESTAR_NUM) * 0
+            }
+            physics = new Physics(initialPosition, initialVelocity, mass, resistanceCofficient);
+            firestars[i] = physics;
+        }
+        let random_color = Math.random() * 3;
+        random_color = Math.floor(random_color);
+        //以上デバッグ用
+
+        function draw() {
+            background(0, 0, 0, 15);
+
+            if (mouseIsPressed && (Date.now() - firestat_generate_time) > 400) {
+                firestat_generate_time = Date.now();
+                //console.log("mouseIsPressed");
+
+                for (let i = 0; i < FIRESTAR_NUM; i++) {
+                    initialPosition = {
+                        x: mouseX,
+                        y: mouseY
+                    };
+
+                    let random = Math.random();
+                    let initial_velocity = FIRESTAR_INITIAL_VELOCITY * random;
+                    initialVelocity = {
+                        x: initial_velocity * Math.cos(i * 2 * Math.PI / FIRESTAR_NUM),
+                        y: initial_velocity * Math.sin(i * 2 * Math.PI / FIRESTAR_NUM)
+                    }
+
+                    physics = new Physics(initialPosition, initialVelocity, mass, resistanceCofficient);
+                    firestars[i] = physics;
+                }
+                random_color = Math.random() * 3;
+                random_color = Math.floor(random_color);
+                console.log(random_color);
+            }
+
+            noStroke();
+            let before_mass = firestars[0].mass;
+            if (random_color === 0) {
+                fill(0x00, 0xFF, 0xFF);
+            } else if (random_color === 1) {
+                fill(0x7F, 0xFF, 0x00);
+            } else {
+                fill(0xF9, 0x7F, 0x04);
+            }
+
+            if (before_mass > 0.003) {
+                for (let j = 0; j < FIRESTAR_NUM; j++) {
+                    let tmp_firestar = firestars[j];
+                    tmp_firestar.updateState(before_mass - 0.00009);
+                    let tmp_posi = tmp_firestar.currentPosition;
+                    ellipse(tmp_posi.x, tmp_posi.y, 1);
+                }
+            }
+
+
+
+        }
+
+        //以下言語仕様の確認用
+        function keyPressed() {
+            if (keyCode === UP_ARROW) {
+                console.log("getter test : " + test._testValue1);
+            } else if (keyCode === DOWN_ARROW) {
+                console.log("VVVV--- object copy test ---VVVV");
+                console.log("test : " + test.test2.x);
+                console.log("test2 : " + test2.test2.x);
+                let tmp = {
+                    x: test.test2.x++,
+                    y: test.test2.y++
+                }
+                test2.setTest2 = tmp;
+                console.log("AAAA---        end       ---AAAA");
+            }
+        }
+        //以上言語仕様の確認用
+
+
+        //ユーザー定義関数
+        function drawFireworks(fireworks) {
+            for (let i; i < fireworks.length; i++) {
+                fireworks[i].drawFirework();
+            }
+        }
+    </script>
+
+    <h2>あけおめ</h2>
+</body>
+
+</html>
